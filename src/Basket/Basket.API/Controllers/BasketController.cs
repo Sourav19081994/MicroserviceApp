@@ -1,47 +1,50 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Basket.API.Entities;
+using Basket.API.Repositories.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Basket.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class BasketController : ControllerBase
     {
-        // GET: api/<BasketController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private readonly IBasketRepository _repository;
+
+        public BasketController(IBasketRepository repository)
         {
-            return new string[] { "value1", "value2" };
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        // GET api/<BasketController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        // GET: api/<BasketController>
+        [HttpGet]
+        [ProducesResponseType(typeof(BasketCart), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<BasketCart>> GetBasket(string userName)
         {
-            return "value";
+            var basket = await _repository.GetBasket(userName);
+            return Ok(basket ?? new BasketCart(userName));
         }
 
         // POST api/<BasketController>
         [HttpPost]
-        public void Post([FromBody] string value)
+        [ProducesResponseType(typeof(BasketCart), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<BasketCart>> UpdateBasket([FromBody] BasketCart basket)
         {
-        }
-
-        // PUT api/<BasketController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
+            return Ok(await _repository.UpdateBasket(basket));
         }
 
         // DELETE api/<BasketController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("{userName}")]
+        [ProducesResponseType(typeof(BasketCart), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> DeleteBasket(string userName)
         {
+            return Ok(await _repository.DeleteBasket(userName));
         }
     }
 }
