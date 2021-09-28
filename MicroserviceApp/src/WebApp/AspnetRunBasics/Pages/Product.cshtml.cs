@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AspnetRunBasics.ApiCollection.Interfaces;
+using AspnetRunBasics.Models;
 using AspnetRunBasics.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,34 +12,35 @@ namespace AspnetRunBasics
 {
     public class ProductModel : PageModel
     {
-        private readonly IProductRepository _productRepository;
-        private readonly ICartRepository _cartRepository;
+        private readonly ICatalogApi _catalogApi;
+        private readonly IBasketApi _basketApi;
 
-        public ProductModel(IProductRepository productRepository, ICartRepository cartRepository)
+        public ProductModel(ICatalogApi catalogApi, IBasketApi basketApi)
         {
-            _productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
-            _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
+            _catalogApi = catalogApi ?? throw new ArgumentNullException(nameof(catalogApi));
+            _basketApi = basketApi ?? throw new ArgumentNullException(nameof(basketApi));
         }
 
-        public IEnumerable<Entities.Category> CategoryList { get; set; } = new List<Entities.Category>();
-        public IEnumerable<Entities.Product> ProductList { get; set; } = new List<Entities.Product>();
+        public IEnumerable<string> CategoryList { get; set; } = new List<string>();
+        public IEnumerable<CatalogModel> ProductList { get; set; } = new List<CatalogModel>();
 
 
         [BindProperty(SupportsGet = true)]
         public string SelectedCategory { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int? categoryId)
+        public async Task<IActionResult> OnGetAsync(string categoryName)
         {
-            CategoryList = await _productRepository.GetCategories();
+            var productList = await _catalogApi.GetCatalog();
+            CategoryList = productList.Select(p => p.Category).Distinct();
 
-            if (categoryId.HasValue)
+            if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                ProductList = await _productRepository.GetProductByCategory(categoryId.Value);
-                SelectedCategory = CategoryList.FirstOrDefault(c => c.Id == categoryId.Value)?.Name;
+                productList.Where(p => p.Category == categoryName);
+                SelectedCategory = categoryName;
             }
             else
             {
-                ProductList = await _productRepository.GetProducts();
+                ProductList = productList;
             }
 
             return Page();
